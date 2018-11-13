@@ -1,0 +1,2 @@
+# socketServer
+.net core

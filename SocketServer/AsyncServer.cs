@@ -35,7 +35,14 @@ namespace SocketServer
             // The DNS name of the computer  
             // running the listener is "host.contoso.com".  
             IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
-            IPAddress ipAddress = ipHostInfo.AddressList[1];//trocar esse número dependento da maquina
+            IPAddress ipAddress = null;
+            foreach (var ip in ipHostInfo.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipAddress = ip;
+                }
+            }
             localEndPoint = new IPEndPoint(ipAddress, port);
             //log.Info($"{ClassName} Initing server...{ipAddress.ToString()}:{port}");
 
@@ -116,6 +123,7 @@ namespace SocketServer
 
             if (bytesRead > 0)
             {
+                state.sb.Clear();
                 // There  might be more data, so store the data received so far.  
                 state.sb.Append(Encoding.ASCII.GetString(
                     state.buffer, 0, bytesRead));
@@ -138,21 +146,22 @@ namespace SocketServer
 
 
                 //IComunicationProtocol request = DefineRequest(msg);
-                if (content.IndexOf("<EOF>") > -1)
-                {
+
+                //if (content.IndexOf("<EOF>") > -1)
+                //{
                     // All the data has been read from the   
                     // client. Display it on the console.  
-                    Console.WriteLine("Read {0} bytes from socket. \n Data : {1}",
+                    Console.WriteLine(DateTime.Now+" Read {0} bytes from socket. \nData : {1}",
                         content.Length, content);
                     // Echo the data back to the client. 
                     Send(content);
-                }
-                else
-                {
+                //}
+                //else
+                //{
                     // Not all data received. Get more.  
                     Sender.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                     new AsyncCallback(ReadCallback), state);
-                }
+                //}
             }
         }
 
@@ -165,11 +174,13 @@ namespace SocketServer
                     // Convert the string data to byte data using ASCII encoding.  
                     byte[] byteData = Encoding.ASCII.GetBytes(data);
 
+                    Console.WriteLine(DateTime.Now+" Enviando para client: "+data);                    
                     try
                     {
                         // Begin sending the data to the remote device.  
                         Sender.BeginSend(byteData, 0, byteData.Length, 0,
                             new AsyncCallback(SendCallback), Sender);
+                        
                     }
                     catch (Exception e)
                     {
@@ -190,9 +201,10 @@ namespace SocketServer
                 int bytesSent = handler.EndSend(ar);
                 //log.Info($"{ClassName} Sent {bytesSent} bytes to client.");
                 Console.WriteLine("Sent {0} bytes to client.", bytesSent);
-
-                handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                
+                //handler.Shutdown(SocketShutdown.Both);
+                //handler.Close();
+                
 
             }
             catch (Exception e)
@@ -201,7 +213,7 @@ namespace SocketServer
                 Console.WriteLine(e.ToString());
             }
         }
-        
+
     }
 
     // State object for reading client data asynchronously  
@@ -210,7 +222,7 @@ namespace SocketServer
         // Client  socket.  
         public Socket workSocket = null;
         // Size of receive buffer.  
-        public const int BufferSize = 8192;
+        public const int BufferSize = 99999;
         // Receive buffer.  
         public byte[] buffer = new byte[BufferSize];
         // Received data string.  
